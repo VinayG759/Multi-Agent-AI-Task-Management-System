@@ -1,0 +1,34 @@
+[project]
+name = "taskpilot"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "anthropic>=1.11.0",
+    "apscheduler>=3.10,<4",
+    "fastapi>=0.142.2",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.15.0",
+    "python-telegram-bot>=21",
+    "sqlalchemy[asyncio]>=2.1.3",
+    "tzdata>=2026.5",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency markers are meant to be used as argument defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "zoneinfo.ZoneInfo"]
