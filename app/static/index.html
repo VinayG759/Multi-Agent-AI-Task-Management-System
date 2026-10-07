@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskPilot</title>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">TaskPilot</div>
+      <nav class="nav" aria-label="Main">
+        <a class="nav-link" href="#tasks" data-view="tasks">Tasks</a>
+        <a class="nav-link" href="#activity" data-view="activity">Agent activity</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="field">
+          <label for="me">Viewing as</label>
+          <select id="me" class="input"></select>
+        </div>
+        <ul id="system-status" class="status-list" aria-label="System status"></ul>
+        <button id="help-button" class="btn btn-quiet" type="button">Keyboard shortcuts <kbd>?</kbd></button>
+      </div>
+    </aside>
+
+    <main id="main" class="main" tabindex="-1">
+      <!-- Tasks -->
+      <section id="view-tasks" aria-labelledby="tasks-heading">
+        <header class="page-head">
+          <h1 id="tasks-heading">Tasks</h1>
+          <button id="new-task" class="btn btn-primary" type="button">New task <kbd>N</kbd></button>
+        </header>
+
+        <div id="stats" class="stats" role="group" aria-label="Task counts. Select one to filter the list."></div>
+
+        <form id="quick-add" class="quick-add" autocomplete="off">
+          <label for="quick-add-input">Ask the assistant</label>
+          <div class="quick-add-row">
+            <input id="quick-add-input" class="input" type="text" maxlength="4000"
+                   placeholder="Type a request, for example: Assign API testing to Rahul by Friday">
+            <button id="quick-add-send" class="btn btn-secondary" type="submit">Send</button>
+          </div>
+          <p id="quick-add-hint" class="hint"></p>
+          <div id="quick-add-reply" class="reply" hidden></div>
+        </form>
+
+        <div class="toolbar" role="search" aria-label="Find tasks">
+          <div class="field field-grow">
+            <label for="search">Search <kbd>/</kbd></label>
+            <input id="search" class="input" type="search" placeholder="Title or description">
+          </div>
+          <div class="field">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" class="input">
+              <option value="open">Open</option>
+              <option value="">All statuses</option>
+              <option value="todo">To do</option>
+              <option value="in_progress">In progress</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-priority">Priority</label>
+            <select id="filter-priority" class="input">
+              <option value="">Any priority</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-assignee">Assignee</label>
+            <select id="filter-assignee" class="input"></select>
+          </div>
+          <div class="field">
+            <label for="sort">Sort by</label>
+            <select id="sort" class="input">
+              <option value="due_at">Due date</option>
+              <option value="score">Urgency</option>
+              <option value="priority">Priority</option>
+              <option value="created_at">Newest</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="presets" role="group" aria-label="Quick filters">
+          <button class="chip" type="button" data-preset="mine">My tasks</button>
+          <button class="chip" type="button" data-preset="overdue">Overdue</button>
+          <button class="chip" type="button" data-preset="week">Due this week</button>
+          <button class="chip" type="button" data-preset="high">High priority</button>
+        </div>
+
+        <div class="list-head">
+          <p id="result-count" class="result-count" aria-live="polite"></p>
+          <div id="active-filters" class="active-filters" aria-label="Active filters"></div>
+        </div>
+
+        <div id="refresh-banner" class="banner" hidden>
+          <span>Tasks have changed since this list loaded.</span>
+          <button id="refresh" class="btn btn-secondary btn-small" type="button">Refresh list</button>
+        </div>
+
+        <div id="list-error" class="banner banner-error" role="alert" hidden></div>
+
+        <div class="table-wrap">
+          <table class="tasks" aria-describedby="result-count">
+            <thead>
+              <tr>
+                <th scope="col" class="col-check"><span class="sr-only">Complete</span></th>
+                <th scope="col">Task</th>
+                <th scope="col">Assignee</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Status</th>
+                <th scope="col">Due</th>
+              </tr>
+            </thead>
+            <tbody id="task-rows"></tbody>
+          </table>
+          <div id="empty" class="empty" hidden></div>
+        </div>
+        <div class="list-foot"><button id="more" class="btn btn-secondary" type="button" hidden>Show more</button></div>
+      </section>
+
+      <!-- Agent activity -->
+      <section id="view-activity" aria-labelledby="activity-heading" hidden>
+        <header class="page-head">
+          <h1 id="activity-heading">Agent activity</h1>
+          <button id="reload-activity" class="btn btn-secondary" type="button">Refresh</button>
+        </header>
+        <p class="lead">Every request is handled by a team of agents. Open a run to see which agent did what, in order.</p>
+
+        <h2>Proactive jobs</h2>
+        <p class="hint">These run on a schedule. Run one now to see it work without waiting.</p>
+        <div id="jobs" class="jobs"></div>
+
+        <h2>Recent runs</h2>
+        <div id="runs" class="runs"></div>
+        <div id="runs-empty" class="empty" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+    <div id="drawer-body" class="drawer-body"></div>
+  </dialog>
+
+  <dialog id="help" class="modal" aria-labelledby="help-title">
+    <h2 id="help-title">Keyboard shortcuts</h2>
+    <dl class="shortcuts">
+      <div><dt><kbd>/</kbd></dt><dd>Search tasks</dd></div>
+      <div><dt><kbd>N</kbd></dt><dd>New task</dd></div>
+      <div><dt><kbd>J</kbd> <kbd>K</kbd></dt><dd>Move down or up the list</dd></div>
+      <div><dt><kbd>Enter</kbd></dt><dd>Open the selected task</dd></div>
+      <div><dt><kbd>E</kbd></dt><dd>Edit the selected task</dd></div>
+      <div><dt><kbd>C</kbd></dt><dd>Mark the selected task complete</dd></div>
+      <div><dt><kbd>Esc</kbd></dt><dd>Close a panel</dd></div>
+      <div><dt><kbd>?</kbd></dt><dd>Show this list</dd></div>
+    </dl>
+    <form method="dialog"><button class="btn btn-primary" type="submit">Close</button></form>
+  </dialog>
+
+  <div id="toasts" class="toasts" role="region" aria-label="Notifications"></div>
+  <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

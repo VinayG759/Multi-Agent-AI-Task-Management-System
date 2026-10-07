@@ -127,7 +127,7 @@ async def test_overdue_followup_is_one_message_per_person_not_per_task(db, setti
 async def test_weekly_summary_is_sent_once_per_week(db, settings, people):
     await add_task(db, title="Deploy", assignee_id=people["Alice"], status=Status.done)
     later_same_week = lambda: NOW + timedelta(days=2)
-    runner, channel = runner_with(db, settings, [FakeLLM.says("This week: 1 done.")])
+    runner, _ = runner_with(db, settings, [FakeLLM.says("This week: 1 done.")])
     assert await runner.run("weekly_summary") == 1
     again, channel_again = runner_with(db, settings, [], clock=later_same_week)
     assert await again.run("weekly_summary") == 0 and channel_again.sent == []

@@ -1,0 +1,88 @@
+/* Every colour, size and spacing value in the dashboard is defined here, once.
+   app.css uses these names only, which is what keeps every screen consistent. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Colour: light theme. Text pairs meet WCAG AA (4.5:1) on their backgrounds. */
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-sunk: #f0f0f2;
+  --border: #dedee3;
+  --border-strong: #b9b9c2;
+  --text: #17171c;
+  --text-muted: #55555f;
+  --accent: #4338ca;
+  --accent-hover: #3730a3;
+  --on-accent: #ffffff;
+  --accent-soft: #eeeefc;
+  --focus: #4338ca;
+
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --warning: #8a3c05;
+  --warning-soft: #fdf1df;
+  --success: #05603a;
+  --success-soft: #e3f6ec;
+  --neutral-soft: #ececef;
+
+  /* Type */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --line: 1.5;
+
+  /* Space: one 4px scale */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --control-height: 36px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.16);
+  --fast: 120ms;
+  --sidebar-width: 232px;
+  --drawer-width: 460px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e11;
+    --surface: #17171b;
+    --surface-sunk: #1f1f25;
+    --border: #2d2d35;
+    --border-strong: #4a4a56;
+    --text: #ececf0;
+    --text-muted: #a4a4b0;
+    --accent: #a5b0ff;
+    --accent-hover: #c0c8ff;
+    --on-accent: #10102a;
+    --accent-soft: #23234a;
+    --focus: #a5b0ff;
+
+    --danger: #ff9086;
+    --danger-soft: #3a1a18;
+    --warning: #fdbb4a;
+    --warning-soft: #33250c;
+    --success: #5fd39a;
+    --success-soft: #11301f;
+    --neutral-soft: #26262d;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-raised: 0 12px 32px rgb(0 0 0 / 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --fast: 0ms; }
+}
