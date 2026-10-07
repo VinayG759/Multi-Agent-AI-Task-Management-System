@@ -40,6 +40,10 @@ class Database:
         if ":memory:" in url:
             # One shared connection, otherwise every session sees its own empty database.
             kwargs = {"poolclass": StaticPool, "connect_args": {"check_same_thread": False}}
+        elif url.startswith("sqlite"):
+            # SQLite allows one writer at a time. An agent run can hold its transaction for several
+            # seconds while the model thinks, so other writers wait for it instead of failing.
+            kwargs = {"connect_args": {"timeout": 30}}
         self.engine: AsyncEngine = create_async_engine(url, **kwargs)
         self.session_factory: async_sessionmaker[AsyncSession] = async_sessionmaker(
             self.engine, expire_on_commit=False

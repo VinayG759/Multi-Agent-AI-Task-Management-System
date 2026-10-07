@@ -66,3 +66,21 @@ async def client(app):
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+def make_ctx(session, user, llm, settings, message="", history=None):
+    """A RunContext for agent tests: fixed clock, scripted LLM, in-memory trace."""
+    from app.agents.base import RunContext
+    from app.agents.trace import Tracer
+
+    return RunContext(
+        run_id="run-test",
+        user=user,
+        now=NOW,
+        original_message=message,
+        session=session,
+        tracer=Tracer("run-test", user.id, "chat", message),
+        llm=llm,
+        settings=settings,
+        history=history or [],
+    )

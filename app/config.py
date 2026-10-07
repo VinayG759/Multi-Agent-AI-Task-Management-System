@@ -12,9 +12,14 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     timezone: str = "Asia/Kolkata"
 
-    orchestrator_model: str = "claude-sonnet-5-5"
-    specialist_model: str = "claude-sonnet-5-5"
-    reviewer_model: str = "claude-haiku-4-5-20251001"
+    # One model per agent role, so a cheaper or faster model can be swapped in from .env.
+    orchestrator_model: str = "claude-opus-5-5"
+    specialist_model: str = "claude-opus-5-5"
+    reviewer_model: str = "claude-opus-5-5"
+    # How hard the model thinks: low | medium | high. Lower is faster and cheaper.
+    llm_effort: str = "low"
+    # Let Anthropic re-run a request on another model if a safety filter declines it.
+    llm_fallbacks: bool = True
 
     enable_telegram: bool = True
     enable_scheduler: bool = True
