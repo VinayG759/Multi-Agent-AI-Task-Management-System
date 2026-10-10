@@ -54,13 +54,15 @@ def describe_due(due: datetime | None, now: datetime, tz: ZoneInfo) -> str | Non
     return f"{local.strftime('%a %d %b %Y, %H:%M')} ({when})"
 
 
-def task_brief(task: Task, now: datetime, tz: ZoneInfo) -> dict:
+def task_brief(task: Task, now: datetime, tz: ZoneInfo, asker_id: int | None = None) -> dict:
     return {
         "id": task.id,
         "title": task.title,
         "status": task.status.value,
         "priority": task.priority.value,
         "assignee": task.assignee.name if task.assignee else None,
+        # Decided here by id, so the model never has to guess from two similar names.
+        "assigned_to_you": asker_id is not None and task.assignee_id == asker_id,
         "due": describe_due(task.due_at, now, tz),
         "overdue": bool(task.is_open and task.due_at and task.due_at < now),
     }
@@ -79,7 +81,7 @@ class _Toolbox:
         self.users = UserService(ctx.session)
 
     def brief(self, task: Task) -> dict:
-        return task_brief(task, self.ctx.now, self.tz)
+        return task_brief(task, self.ctx.now, self.tz, asker_id=self.ctx.user.id)
 
     async def person(self, name: str) -> User | None:
         """A known person, or None if nobody by that name exists yet."""

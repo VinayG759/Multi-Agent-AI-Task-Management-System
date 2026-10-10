@@ -322,3 +322,16 @@ async def test_a_reason_can_be_saved_when_completing_a_task(session, alice, sett
     tools, _, _ = task_tools(session, alice, settings, [approve()])
     await tools.complete_task({"task_id": task.id, "note": "Deployed in last night's window"})
     assert (await tasks.events(task.id))[0].changes["note"] == "Deployed in last night's window"
+
+
+async def test_each_task_says_in_code_whether_it_belongs_to_the_person_asking(session, alice, settings, tasks):
+    lookalike = User(name="Alice B")
+    session.add(lookalike)
+    await session.flush()
+    await tasks.create(TaskCreate(title="Mine", assignee_id=alice.id), actor="t")
+    await tasks.create(TaskCreate(title="Not mine", assignee_id=lookalike.id), actor="t")
+    await tasks.create(TaskCreate(title="Nobody's"), actor="t")
+
+    tools = AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings))
+    listed = {t["title"]: t["assigned_to_you"] for t in (await tools.list_tasks({"status": "all"}))["tasks"]}
+    assert listed == {"Mine": True, "Not mine": False, "Nobody's": False}

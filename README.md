@@ -11,7 +11,7 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 | Chat | Telegram, behind a channel interface so other platforms can be added |
 | Proactive | APScheduler: daily plan, due-soon reminders, overdue follow-ups, weekly summary |
 | Dashboard | Plain HTML, CSS and JavaScript served by FastAPI. No build step |
-| Tests | 110 automated tests. None of them call a real LLM or Telegram |
+| Tests | 116 automated tests. None of them call a real LLM or Telegram |
 
 ## Run it
 
@@ -201,7 +201,7 @@ The current setup is sized for a demo and a small team. Each part has a clear ne
 
 - **No login on the dashboard.** A "Viewing as" menu picks the current person. Anyone who can open the page can act as anyone.
 - **The join code is one shared secret.** If it leaks, anyone can join until it is changed in `.env`. People who joined earlier stay in; there is no way yet to remove one person.
-- **Telegram users are matched by first name.** Two people with the same first name need distinct names in the team list.
+- **Telegram users are matched to team members by name.** An exact match links directly. Otherwise a person is linked when exactly one unlinked member shares their first name, so "Vinay G" in Telegram becomes "Vinay" on the team list, and the welcome message says who they were matched to. If two members share that first name, nobody is guessed and a new person is created. There is no way yet to correct a wrong match from the chat.
 - **Reminders reach only people who have sent `/start` to the bot.** Telegram does not let a bot message someone first.
 - **Replies take about 10 seconds.** One message means four or five LLM calls in a row (Orchestrator, specialist, Reviewer, then the final reply). Telegram shows "typing" while the agents work. Running independent steps in parallel is the next improvement.
 - **The dashboard has not been tested with a screen reader**, only by keyboard and by contrast calculation.
@@ -223,7 +223,7 @@ app/
 scripts/
   seed.py            Demo team and tasks
   eval_examples.py   Runs the assignment's six example sentences against the real LLM
-tests/               110 tests
+tests/               116 tests
 docs/
   architecture.md    Architecture diagram and evaluation
   plans/             The implementation plan this was built from

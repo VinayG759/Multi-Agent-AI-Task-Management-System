@@ -173,3 +173,33 @@ async def test_a_reason_alone_changes_nothing(tasks, session):
     task = await tasks.create(TaskCreate(title="Visit the site"), actor="t")
     await tasks.update(task.id, TaskUpdate(title="Visit the site"), actor="t", note="just a thought")
     assert len(await _events(session, task.id)) == 1
+
+
+async def test_telegram_name_with_a_surname_links_to_the_one_member_sharing_its_first_name(session):
+    users = UserService(session)
+    member, _ = await users.get_or_create_member("Vinay")
+    linked = await users.link_telegram("555", "Vinay G")
+    assert linked.id == member.id and linked.name == "Vinay" and linked.telegram_chat_id == "555"
+
+
+async def test_a_member_listed_with_a_surname_links_to_a_telegram_first_name(session):
+    users = UserService(session)
+    session.add(User(name="Priya Nair"))
+    await session.flush()
+    assert (await users.link_telegram("556", "Priya")).name == "Priya Nair"
+
+
+async def test_first_name_linking_never_guesses_between_two_people(session):
+    users = UserService(session)
+    session.add_all([User(name="Rahul Sharma"), User(name="Rahul Verma")])
+    await session.flush()
+    newcomer = await users.link_telegram("557", "Rahul K")
+    assert newcomer.name == "Rahul K"
+    assert len(await users.list_all()) == 3
+
+
+async def test_first_name_linking_skips_members_who_are_already_linked(session):
+    users = UserService(session)
+    session.add(User(name="Vinay", telegram_chat_id="111"))
+    await session.flush()
+    assert (await users.link_telegram("558", "Vinay G")).name == "Vinay G"

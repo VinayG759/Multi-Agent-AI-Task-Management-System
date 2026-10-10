@@ -13,7 +13,9 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 from app.agents.runtime import AgentRuntime
 from app.channels.base import split_message
-from app.models import User
+from app.models import OPEN_STATUSES, User
+from app.schemas import TaskFilter
+from app.services.tasks import TaskService
 from app.services.users import UserService
 
 log = logging.getLogger(__name__)
@@ -68,11 +70,21 @@ class TelegramChannel:
         async with self.session_factory() as session:
             users = UserService(session)
             # Someone already linked stays in. Only a new person has to show the join code.
-            if await users.by_telegram(chat_id) is None and not self._code_accepted(code):
+            newcomer = await users.by_telegram(chat_id) is None
+            if newcomer and not self._code_accepted(code):
                 return JOIN_CODE_NEEDED
             user = await users.link_telegram(chat_id, display_name)
             await session.commit()
-            return WELCOME.format(name=user.name)
+
+            welcome = WELCOME.format(name=user.name)
+            if newcomer:
+                # Say who they were matched to, so a wrong match is noticed on day one.
+                tasks = TaskService(session, tz=self.runtime.settings.tz)
+                open_count = await tasks.count(TaskFilter(status=list(OPEN_STATUSES), assignee_id=user.id))
+                if open_count:
+                    plural = "" if open_count == 1 else "s"
+                    welcome += f'\n\nYou are on the team list as "{user.name}", with {open_count} open task{plural}.'
+            return welcome
 
     async def on_text(self, chat_id: str, text: str) -> list[str]:
         async with self.session_factory() as session:

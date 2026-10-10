@@ -6,7 +6,7 @@ from app.agents.llm import FakeLLM
 from app.agents.runtime import AgentRuntime
 from app.channels.base import split_message
 from app.channels.telegram import JOIN_CODE_NEEDED, NOT_STARTED, TelegramChannel
-from app.models import Message, User
+from app.models import Message, Status, Task, User
 from tests.conftest import NOW
 
 
@@ -123,3 +123,15 @@ async def test_someone_already_in_does_not_need_the_code_again(locked_channel):
 async def test_a_stranger_cannot_reach_the_agents_on_a_locked_bot(locked_channel):
     # The scripted model has no replies: reaching it would fail this test.
     assert await locked_channel.on_text("999", "show all tasks") == [JOIN_CODE_NEEDED]
+
+
+async def test_welcome_says_which_team_member_you_were_matched_to(make_channel, db):
+    async with db.session_factory() as s:
+        member = User(name="Vinay")
+        s.add(member)
+        await s.flush()
+        s.add_all([Task(title="Deploy CRM", assignee_id=member.id), Task(title="Old", assignee_id=member.id, status=Status.done)])
+        await s.commit()
+    welcome = await make_channel([]).on_start("555", "Vinay G")
+    assert welcome.startswith("Hi Vinay, I'm TaskPilot")
+    assert 'You are on the team list as "Vinay", with 1 open task.' in welcome

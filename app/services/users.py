@@ -36,6 +36,17 @@ class UserService:
         await self.session.flush()
         return user, True
 
+    async def _only_member_sharing_first_name(self, name: str) -> User | None:
+        """Chat names often carry a surname or initial ("Vinay G") that the team list does not ("Vinay").
+
+        If exactly one unlinked member has the same first name, that is the person. With two or more
+        candidates nobody is chosen: a wrong guess would hand one person another person's tasks.
+        """
+        first = name.split()[0].lower()
+        unlinked = (await self.session.scalars(select(User).where(User.telegram_chat_id.is_(None)))).all()
+        candidates = [u for u in unlinked if u.name.split() and u.name.split()[0].lower() == first]
+        return candidates[0] if len(candidates) == 1 else None
+
     async def by_telegram(self, chat_id: str) -> User | None:
         stmt = select(User).where(User.telegram_chat_id == str(chat_id))
         return (await self.session.scalars(stmt)).first()
@@ -48,6 +59,8 @@ class UserService:
         name = display_name.strip() or "Teammate"
         stmt = select(User).where(func.lower(User.name) == name.lower(), User.telegram_chat_id.is_(None))
         user = (await self.session.scalars(stmt)).first()
+        if user is None:
+            user = await self._only_member_sharing_first_name(name)
         if user is None:
             user = User(name=name)
             self.session.add(user)

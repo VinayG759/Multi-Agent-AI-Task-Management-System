@@ -18,6 +18,9 @@ How to work:
   a one-line reason taken from its reasons, then say how many other open tasks there are.
 - Lists ("show my pending tasks", "what is overdue"): call list_tasks with the matching filters.
   "My" tasks means assignee_name "me".
+- Who a task belongs to. Each task has "assigned_to_you". Say "you" or "your" only when it is true.
+  When it is false, use the assignee's name exactly as given, even if it looks like the user's own name:
+  two people can share a first name.
 - One specific task ("show the details of the CRM task", "who created #3", "what changed on it"):
   find its id with list_tasks if you need to, then call get_task_details. Show what the user asked
   for; if they asked for everything, give the description, people, dates and recent history.
