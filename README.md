@@ -11,7 +11,7 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 | Chat | Telegram, behind a channel interface so other platforms can be added |
 | Proactive | APScheduler: daily plan, due-soon reminders, overdue follow-ups, weekly summary |
 | Dashboard | Plain HTML, CSS and JavaScript served by FastAPI. No build step |
-| Tests | 116 automated tests. None of them call a real LLM or Telegram |
+| Tests | 119 automated tests. None of them call a real LLM or Telegram |
 
 ## Run it
 
@@ -222,8 +222,8 @@ app/
   static/            The dashboard
 scripts/
   seed.py            Demo team and tasks
-  eval_examples.py   Runs the assignment's six example sentences against the real LLM
-tests/               116 tests
+  eval_examples.py   Runs the assignment's six example sentences, plus a two-task request, against the real LLM
+tests/               119 tests
 docs/
   architecture.md    Architecture diagram and evaluation
   plans/             The implementation plan this was built from

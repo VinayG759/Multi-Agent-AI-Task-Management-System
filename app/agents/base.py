@@ -40,6 +40,9 @@ class RunContext:
     llm: LLMClient
     settings: Settings
     history: list[dict] = field(default_factory=list)
+    # Changes the Reviewer has approved so far in this run. One request can change several tasks,
+    # and each change is reviewed on its own, so the Reviewer is shown what came before.
+    approved_changes: list[dict] = field(default_factory=list)
 
     def date_line(self) -> str:
         local = self.now.astimezone(self.settings.tz)

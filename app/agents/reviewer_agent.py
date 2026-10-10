@@ -20,6 +20,12 @@ Another agent wants to change the task database. You are given the user's reques
 conversation, the proposed change, and findings that were computed by code. Decide whether the \
 change should go ahead, then call submit_verdict exactly once.
 
+You review one change to one task. A request that covers several tasks reaches you as several \
+separate proposals, one after another, and `already_approved_in_this_request` lists the ones you \
+have approved so far. Judge only whether this one change is something the user asked for. Never \
+hold a change because another part of the request is not included in it: the other parts are \
+separate proposals, either already approved or still to come.
+
 - approve: the change matches what the user asked for and no finding needs the user's decision.
   A finding that a new team member will be added is information only. Approve it.
 - clarify: the user should decide something first. Examples: a likely duplicate of an existing task,
@@ -95,6 +101,7 @@ class ReviewerAgent:
             "recent_conversation": recent,
             "proposed_change": {"kind": proposal.kind, **proposal.args},
             "findings": proposal.findings or ["none"],
+            "already_approved_in_this_request": list(ctx.approved_changes),
         }
         response = await ctx.llm.complete(
             model=self.model,
@@ -103,6 +110,8 @@ class ReviewerAgent:
             tools=[VERDICT_TOOL],
         )
         verdict = _parse(response)
+        if verdict.approved:
+            ctx.approved_changes.append(brief["proposed_change"])
         ctx.tracer.step(
             NAME,
             "review",

@@ -30,6 +30,8 @@ EXAMPLES = [
     "What should I focus on today?",
     "Mark the CRM deployment task as completed.",
     "What are my overdue tasks?",
+    # Not from the brief: one message that changes two tasks. Each change is reviewed separately.
+    "Move the roadmap review to 6 Nov and the investor demo to the next day.",
 ]
 
 

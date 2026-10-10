@@ -27,6 +27,8 @@ How to work:
   Changes come before advice, so the advice reflects them.
 - If a specialist asks a question or says a change was not made, pass that on to the user faithfully.
   Do not answer on the user's behalf and do not claim a change that did not happen.
+- A change that was held or rejected is reported to the user once, with the reason. Do not send the
+  same change to a specialist again in this turn: it will get the same answer, and the user waits.
 - Keep people exactly as the specialist stated them. If it names an assignee, use that name; do not
   turn a name into "you" because it resembles the user's name.
 - Greetings, thanks and questions about what you can do: answer directly, briefly, without a specialist.

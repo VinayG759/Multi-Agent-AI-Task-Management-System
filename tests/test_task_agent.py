@@ -335,3 +335,37 @@ async def test_each_task_says_in_code_whether_it_belongs_to_the_person_asking(se
     tools = AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings))
     listed = {t["title"]: t["assigned_to_you"] for t in (await tools.list_tasks({"status": "all"}))["tasks"]}
     assert listed == {"Mine": True, "Not mine": False, "Nobody's": False}
+
+
+async def test_reviewer_is_shown_what_it_already_approved_in_the_same_request(session, alice, settings, tasks):
+    crm = await tasks.create(TaskCreate(title="Deploy CRM", assignee_id=alice.id), actor="t")
+    review = await tasks.create(TaskCreate(title="Review roadmap", assignee_id=alice.id), actor="t")
+    tools, _, llm = task_tools(session, alice, settings, [approve(), approve()], message="move crm to 6 nov and review to the next day")
+
+    await tools.update_task({"task_id": crm.id, "due_date": "2026-11-06T17:30"})
+    await tools.update_task({"task_id": review.id, "due_date": "2026-11-07T17:30"})
+
+    assert reviewer_brief(llm, call=0)["already_approved_in_this_request"] == []
+    earlier = reviewer_brief(llm, call=1)["already_approved_in_this_request"]
+    assert len(earlier) == 1
+    assert earlier[0]["kind"] == "update" and earlier[0]["task"]["id"] == crm.id
+    assert earlier[0]["changes"]["due"].startswith("Fri 06 Nov 2026, 17:30")
+    await session.refresh(review)
+    assert review.due_at is not None
+
+
+async def test_a_held_change_is_not_listed_as_approved(session, alice, settings, tasks):
+    first = await tasks.create(TaskCreate(title="Deploy CRM", assignee_id=alice.id), actor="t")
+    second = await tasks.create(TaskCreate(title="Review roadmap", assignee_id=alice.id), actor="t")
+    tools, _, llm = task_tools(session, alice, settings, [clarify(), approve()])
+
+    await tools.update_task({"task_id": first.id, "priority": "urgent"})
+    await tools.update_task({"task_id": second.id, "priority": "low"})
+    assert reviewer_brief(llm, call=1)["already_approved_in_this_request"] == []
+
+
+async def test_reviewer_is_told_it_judges_one_change_at_a_time(session, alice, settings):
+    llm = FakeLLM([approve()])
+    ctx = make_ctx(session, alice, llm, settings)
+    await ReviewerAgent("m").review(ProposedAction(kind="create", args={"title": "x"}), ctx)
+    assert "one change to one task" in llm.calls[0]["system"]
