@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     telegram_bot_token: str = ""
     timezone: str = "Asia/Kolkata"
+    # When set, a new person must send "/start <code>" to use the Telegram bot. Empty means anyone can join.
+    team_join_code: str = ""
 
     # One model per agent role, so a cheaper or faster model can be swapped in from .env.
     orchestrator_model: str = "claude-opus-5-5"

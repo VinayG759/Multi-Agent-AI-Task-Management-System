@@ -5,7 +5,7 @@ from telegram.error import Forbidden
 from app.agents.llm import FakeLLM
 from app.agents.runtime import AgentRuntime
 from app.channels.base import split_message
-from app.channels.telegram import NOT_STARTED, TelegramChannel
+from app.channels.telegram import JOIN_CODE_NEEDED, NOT_STARTED, TelegramChannel
 from app.models import Message, User
 from tests.conftest import NOW
 
@@ -85,3 +85,41 @@ def test_split_message_handles_text_with_no_line_breaks():
     assert all(len(p) <= 40 for p in parts) and " ".join(parts).strip() == ("word " * 30).strip()
     assert split_message("x" * 100, limit=40) == ["x" * 40, "x" * 40, "x" * 20]
     assert split_message("short", limit=40) == ["short"]
+
+
+# --- join code: who is allowed to use the bot -----------------------------------
+
+
+@pytest.fixture
+def locked_channel(db, settings):
+    """A bot that only lets in people who know the team's join code."""
+    locked = settings.model_copy(update={"team_join_code": "falcon-42"})
+    runtime = AgentRuntime(db.session_factory, FakeLLM([]), locked, now=lambda: NOW)
+    return TelegramChannel(runtime, db.session_factory, bot=FakeBot())
+
+
+async def _user_count(db) -> int:
+    async with db.session_factory() as s:
+        return len((await s.scalars(select(User))).all())
+
+
+async def test_start_without_the_join_code_is_refused_and_creates_nobody(locked_channel, db):
+    assert await locked_channel.on_start("555", "Stranger") == JOIN_CODE_NEEDED
+    assert await locked_channel.on_start("555", "Stranger", code="wrong") == JOIN_CODE_NEEDED
+    assert await _user_count(db) == 0
+
+
+async def test_start_with_the_join_code_lets_the_person_in(locked_channel, db):
+    welcome = await locked_channel.on_start("555", "Priya", code="falcon-42")
+    assert welcome.startswith("Hi Priya, I'm TaskPilot")
+    assert await _user_count(db) == 1
+
+
+async def test_someone_already_in_does_not_need_the_code_again(locked_channel):
+    await locked_channel.on_start("555", "Priya", code="falcon-42")
+    assert (await locked_channel.on_start("555", "Priya")).startswith("Hi Priya")
+
+
+async def test_a_stranger_cannot_reach_the_agents_on_a_locked_bot(locked_channel):
+    # The scripted model has no replies: reaching it would fail this test.
+    assert await locked_channel.on_text("999", "show all tasks") == [JOIN_CODE_NEEDED]

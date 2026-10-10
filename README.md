@@ -11,7 +11,7 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 | Chat | Telegram, behind a channel interface so other platforms can be added |
 | Proactive | APScheduler: daily plan, due-soon reminders, overdue follow-ups, weekly summary |
 | Dashboard | Plain HTML, CSS and JavaScript served by FastAPI. No build step |
-| Tests | 99 automated tests. None of them call a real LLM or Telegram |
+| Tests | 103 automated tests. None of them call a real LLM or Telegram |
 
 ## Run it
 
@@ -30,6 +30,7 @@ Open http://localhost:8000 for the dashboard and http://localhost:8000/docs for 
 |---|---|---|
 | `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com/) | The task API and dashboard work. The assistant answers with an apology and the reason is shown in Agent activity |
 | `TELEGRAM_BOT_TOKEN` | Message [@BotFather](https://t.me/BotFather) on Telegram and send `/newbot` | The Telegram bot does not start. The assistant is still usable from the dashboard |
+| `TEAM_JOIN_CODE` | A phrase you choose and share with your team | Anyone who finds the bot can use it. With it set, a new person must send `/start <code>` once; the link `https://t.me/<your_bot>?start=<code>` does that in one tap |
 
 With Docker: `docker compose up --build`, then open http://localhost:8000.
 
@@ -123,6 +124,7 @@ Times use the `TIMEZONE` setting (default `Asia/Kolkata`).
 - **Agents are short files.** One shared loop ([app/agents/base.py](app/agents/base.py)) handles tool calling. Each agent is a prompt and a tool list.
 - **The LLM sits behind one interface.** [app/agents/llm.py](app/agents/llm.py) is the only file that imports the Anthropic SDK. Tests use a scripted `FakeLLM`.
 - **Channels are swappable.** A channel is one class with a `send` method ([app/channels/base.py](app/channels/base.py)). Adding Google Chat or Slack does not touch the agents.
+- **The bot is closed by default once a join code is set.** A Telegram bot is public: anyone can find it by name. Without the code a stranger gets one fixed reply, no account is created, and no LLM call is made.
 - **Unknown people are handled, not dropped.** Assigning to someone new adds them as a team member and says so. When they later send `/start`, their Telegram account is linked to the same person.
 
 ## API
@@ -179,6 +181,7 @@ The current setup is sized for a demo and a small team. Each part has a clear ne
 ## Known limits
 
 - **No login on the dashboard.** A "Viewing as" menu picks the current person. Anyone who can open the page can act as anyone.
+- **The join code is one shared secret.** If it leaks, anyone can join until it is changed in `.env`. People who joined earlier stay in; there is no way yet to remove one person.
 - **Telegram users are matched by first name.** Two people with the same first name need distinct names in the team list.
 - **Reminders reach only people who have sent `/start` to the bot.** Telegram does not let a bot message someone first.
 - **A request takes several LLM calls**, one per agent step, so a reply to a change takes a few seconds.
@@ -201,7 +204,7 @@ app/
 scripts/
   seed.py            Demo team and tasks
   eval_examples.py   Runs the assignment's six example sentences against the real LLM
-tests/               99 tests
+tests/               103 tests
 docs/
   architecture.md    Architecture diagram and evaluation
   plans/             The implementation plan this was built from

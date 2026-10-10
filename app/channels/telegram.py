@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import hmac
 import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -30,6 +31,10 @@ WELCOME = (
     "I'll also send you a plan each morning and remind you before things are due."
 )
 NOT_STARTED = "Please send /start first so I know who you are."
+JOIN_CODE_NEEDED = (
+    "This bot is for one team. To join, send /start followed by your team's join code, for example:\n"
+    "/start your-code"
+)
 TEXT_ONLY = "I can only read text messages for now. Type what you need and I'll help."
 
 
@@ -51,9 +56,21 @@ class TelegramChannel:
 
     # --- the behaviour, independent of the Telegram library -----------------------
 
-    async def on_start(self, chat_id: str, display_name: str) -> str:
+    def _code_accepted(self, code: str) -> bool:
+        expected = self.runtime.settings.team_join_code
+        # compare_digest takes the same time whether the guess is close or not.
+        return not expected or hmac.compare_digest(code.strip().encode(), expected.encode())
+
+    def _not_allowed(self) -> str:
+        return JOIN_CODE_NEEDED if self.runtime.settings.team_join_code else NOT_STARTED
+
+    async def on_start(self, chat_id: str, display_name: str, code: str = "") -> str:
         async with self.session_factory() as session:
-            user = await UserService(session).link_telegram(chat_id, display_name)
+            users = UserService(session)
+            # Someone already linked stays in. Only a new person has to show the join code.
+            if await users.by_telegram(chat_id) is None and not self._code_accepted(code):
+                return JOIN_CODE_NEEDED
+            user = await users.link_telegram(chat_id, display_name)
             await session.commit()
             return WELCOME.format(name=user.name)
 
@@ -61,7 +78,7 @@ class TelegramChannel:
         async with self.session_factory() as session:
             user = await UserService(session).by_telegram(chat_id)
         if user is None:
-            return [NOT_STARTED]
+            return [self._not_allowed()]
         result = await self.runtime.handle_chat(user.id, text)
         return split_message(result.reply, MESSAGE_LIMIT)
 
@@ -80,7 +97,8 @@ class TelegramChannel:
 
     async def _handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         name = update.effective_user.first_name or "there"
-        await update.message.reply_text(await self.on_start(str(update.effective_chat.id), name))
+        code = " ".join(context.args or [])
+        await update.message.reply_text(await self.on_start(str(update.effective_chat.id), name, code=code))
 
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         typing = asyncio.create_task(self._keep_typing(update))
