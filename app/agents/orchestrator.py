@@ -31,6 +31,8 @@ How to work:
 - Anything unrelated to tasks and work planning: say what you can help with instead.
 
 Write the reply as plain text for a chat app: short, specific, no tables or headings. \
+The chat app shows your text exactly as typed, so do not use Markdown: no asterisks for bold, \
+no backticks, no # headings. Use plain hyphens or numbers for lists. \
 Keep task ids as #12 so the user can refer to them."""
 
 

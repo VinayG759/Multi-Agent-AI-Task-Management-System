@@ -19,6 +19,7 @@ NO_DATE = {"", "none", "no date", "clear"}
 # A date with no time means "by the end of that working day".
 END_OF_DAY = time(18, 0)
 STEM_LENGTH = 5
+HISTORY_SHOWN = 5
 STOPWORDS = {"the", "a", "an", "task", "tasks", "to", "for", "of", "my", "on", "in", "and", "about"}
 
 
@@ -378,6 +379,29 @@ class AdvisorTools(_Toolbox):
             total = await self.tasks.count(filters)
         return {"count": total, "tasks": [self.brief(t) for t in found]}
 
+    async def get_task_details(self, args: dict) -> dict:
+        """Everything about one task. Lists stay short; this is where the full record comes from."""
+        task = await self.tasks.get(int(args["task_id"]))
+        if task is None:
+            raise ValueError(f"There is no task with id {args['task_id']}. Use list_tasks with a query to find it.")
+
+        def when(moment):
+            return moment.astimezone(self.tz).strftime("%a %d %b %Y, %H:%M") if moment else None
+
+        events = await self.tasks.events(task.id)
+        return {
+            **self.brief(task),
+            "description": task.description or None,
+            "created_by": task.creator.name if task.creator else None,
+            "created": when(task.created_at),
+            "last_changed": when(task.updated_at),
+            "completed": when(task.completed_at),
+            "history": [
+                {"when": when(e.created_at), "by": e.actor, "action": e.action, "changes": e.changes}
+                for e in events[:HISTORY_SHOWN]
+            ],
+        }
+
     async def get_stats(self, args: dict) -> dict:
         days = int(args.get("days") or 7)
         stats = await self.tasks.stats(await self._scope(args.get("scope")), since=self.ctx.now - timedelta(days=days))
@@ -417,6 +441,14 @@ class AdvisorTools(_Toolbox):
                     },
                 },
                 self.list_tasks,
+            ),
+            Tool(
+                "get_task_details",
+                "The full record of one task: description, who created it and when, when it was completed, "
+                "and its most recent changes with who made them. Use it when someone asks about a specific "
+                "task. Find the id with list_tasks first if you do not have it.",
+                {"type": "object", "properties": {"task_id": {"type": "integer"}}, "required": ["task_id"]},
+                self.get_task_details,
             ),
             Tool(
                 "get_stats",

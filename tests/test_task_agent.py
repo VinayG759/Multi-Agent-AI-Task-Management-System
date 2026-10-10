@@ -273,7 +273,7 @@ async def test_advisor_lists_overdue_tasks_for_me(session, alice, settings, task
 
 async def test_advisor_has_no_write_tools(session, alice, settings):
     agent = build_advisor_agent(make_ctx(session, alice, FakeLLM([]), settings))
-    assert set(agent.tools) == {"get_ranked_tasks", "list_tasks", "get_stats"}
+    assert set(agent.tools) == {"get_ranked_tasks", "list_tasks", "get_task_details", "get_stats"}
 
 
 async def test_task_agent_has_no_separate_person_lookup(session, alice, settings):
@@ -281,3 +281,26 @@ async def test_task_agent_has_no_separate_person_lookup(session, alice, settings
     # A separate lookup tool made the agent stop and ask about people it could simply have added.
     agent = build_task_agent(make_ctx(session, alice, FakeLLM([]), settings))
     assert set(agent.tools) == {"search_tasks", "create_task", "update_task", "complete_task"}
+
+
+async def test_advisor_can_show_one_tasks_full_details_and_history(session, alice, settings, tasks):
+    task = await tasks.create(
+        TaskCreate(title="Deploy CRM", description="Blocked by the migration.", assignee_id=alice.id, creator_id=alice.id),
+        actor="user:dashboard",
+    )
+    await tasks.complete(task.id, actor="agent:task")
+    tools = AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings))
+
+    details = await tools.get_task_details({"task_id": task.id})
+    assert details["title"] == "Deploy CRM" and details["status"] == "done"
+    assert details["description"] == "Blocked by the migration."
+    assert details["created_by"] == "Alice"
+    assert details["created"] and details["completed"] == "Wed 07 Oct 2026, 10:00"
+    assert [(e["action"], e["by"]) for e in details["history"]] == [("completed", "agent:task"), ("created", "user:dashboard")]
+    assert details["history"][0]["changes"] == {"status": {"from": "todo", "to": "done"}}
+
+
+async def test_task_details_for_an_unknown_id_is_an_error_the_model_can_read(session, alice, settings):
+    tools = AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings))
+    with pytest.raises(ValueError, match="no task with id 99"):
+        await tools.get_task_details({"task_id": 99})
