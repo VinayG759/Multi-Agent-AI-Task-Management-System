@@ -116,6 +116,25 @@ The scheduler feeds events into the same runtime, so scheduled messages come fro
 
 Times use the `TIMEZONE` setting (default `Asia/Kolkata`).
 
+### Why Telegram, and how Google Chat would be added
+
+The brief prefers Google Chat. Telegram was chosen because a Google Chat app needs a Google Workspace account (it cannot be built on a personal Gmail account) and a public HTTPS address for Google to call, while a Telegram bot is free, takes minutes to create, and runs from a laptop. That left the time for the agent design, which carries most of the grade.
+
+Adding Google Chat is one new adapter in `app/channels/`: an HTTP route that receives Google's message events, verifies Google's signature on each request, maps the sender to a `User`, and calls the same `AgentRuntime.handle_chat`. The agents, tools, services and database stay as they are.
+
+## Beyond the brief
+
+Items from the brief's innovation list that are implemented:
+
+| Item | Where |
+|---|---|
+| Duplicate task detection | Before a task is created, similar open tasks are found in code and passed to the Reviewer, which asks the user before a second copy is made ([app/agents/tools.py](app/agents/tools.py)) |
+| Multi-step planning workflows | The Orchestrator splits one message into several specialist calls in order, for example a change followed by advice |
+| Cross-platform communication | Two channels reach the same agents: Telegram and the dashboard's assistant box (`POST /api/chat`) |
+| Team productivity insights | The weekly summary job and the Advisor's `get_stats` tool, with `scope: "team"` for everyone's work |
+
+Also beyond the brief: an agent trace viewable in the dashboard, a reason saved with each change in the task's history, a join code so only the team can use the bot, and Undo on every dashboard action.
+
 ## Design decisions
 
 - **The Reviewer gate is code, not a prompt.** A prompt that says "always check first" can be ignored. A function call cannot.
@@ -184,7 +203,7 @@ The current setup is sized for a demo and a small team. Each part has a clear ne
 - **The join code is one shared secret.** If it leaks, anyone can join until it is changed in `.env`. People who joined earlier stay in; there is no way yet to remove one person.
 - **Telegram users are matched by first name.** Two people with the same first name need distinct names in the team list.
 - **Reminders reach only people who have sent `/start` to the bot.** Telegram does not let a bot message someone first.
-- **A request takes several LLM calls**, one per agent step, so a reply to a change takes a few seconds.
+- **Replies take about 10 seconds.** One message means four or five LLM calls in a row (Orchestrator, specialist, Reviewer, then the final reply). Telegram shows "typing" while the agents work. Running independent steps in parallel is the next improvement.
 - **The dashboard has not been tested with a screen reader**, only by keyboard and by contrast calculation.
 
 ## Project layout

@@ -1,5 +1,14 @@
 # Multi-Agent AI Task Management System — Implementation Plan
 
+> **This is the plan the system was built from, kept as a record. The [README](../../README.md) and [architecture document](../architecture.md) describe the system as it is now.** What changed during the build:
+>
+> - Every agent's model is set in `.env` (default `claude-opus-5-5`); the plan named Sonnet and Haiku.
+> - The Reviewer is asked to call its verdict tool and fails closed; current Claude models do not allow forcing a tool call.
+> - `TaskService.list` became `search` plus `count`. `handle_chat` returns a result with the reply, run id and status.
+> - Notifications are de-duplicated by one unique key column.
+> - The Task Agent's `find_user` tool was removed; names are resolved inside the write tools.
+> - Added after the plan: a team join code for the bot, the Advisor's `get_task_details` tool, and a reason saved with each change.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** A chat bot that turns natural-language messages into managed tasks through a team of cooperating AI agents, proactively plans and reminds, and exposes everything through a FastAPI backend and a simple dashboard.
