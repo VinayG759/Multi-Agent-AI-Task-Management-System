@@ -304,3 +304,21 @@ async def test_task_details_for_an_unknown_id_is_an_error_the_model_can_read(ses
     tools = AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings))
     with pytest.raises(ValueError, match="no task with id 99"):
         await tools.get_task_details({"task_id": 99})
+
+
+async def test_the_users_reason_for_a_change_reaches_the_reviewer_and_the_history(session, alice, settings, tasks):
+    task = await tasks.create(TaskCreate(title="Visit the site", assignee_id=alice.id), actor="t")
+    tools, _, llm = task_tools(session, alice, settings, [approve()])
+    result = await tools.update_task({"task_id": task.id, "status": "cancelled", "note": "Someone else is handling it"})
+
+    assert result["status"] == "updated" and result["note_saved"] == "Someone else is handling it"
+    assert reviewer_brief(llm)["proposed_change"]["note"] == "Someone else is handling it"
+    details = await AdvisorTools(make_ctx(session, alice, FakeLLM([]), settings)).get_task_details({"task_id": task.id})
+    assert details["history"][0]["changes"]["note"] == "Someone else is handling it"
+
+
+async def test_a_reason_can_be_saved_when_completing_a_task(session, alice, settings, tasks):
+    task = await tasks.create(TaskCreate(title="Deploy CRM", assignee_id=alice.id), actor="t")
+    tools, _, _ = task_tools(session, alice, settings, [approve()])
+    await tools.complete_task({"task_id": task.id, "note": "Deployed in last night's window"})
+    assert (await tasks.events(task.id))[0].changes["note"] == "Deployed in last night's window"

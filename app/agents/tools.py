@@ -244,7 +244,10 @@ class TaskTools(_Toolbox):
         if not task.is_open and "status" not in fields:
             findings.append(f"this task is already {task.status.value}")
 
-        proposal = ProposedAction(kind="update", args={"task": self.brief(task), "changes": changes}, findings=findings)
+        note = (args.get("note") or "").strip() or None
+        proposal = ProposedAction(
+            kind="update", args={"task": self.brief(task), "changes": changes, "note": note}, findings=findings
+        )
         if (held := await self._reviewed(proposal)) is not None:
             return held
 
@@ -253,8 +256,8 @@ class TaskTools(_Toolbox):
             person, _ = await self.users.get_or_create_member(new_member)
             fields["assignee_id"] = person.id
             notes.append(f"{person.name} was not on the team yet, so I added them as a new member.")
-        updated = await self.tasks.update(task.id, TaskUpdate(**fields), actor=TASK_ACTOR)
-        return {"status": "updated", "task": self.brief(updated), "changed": changes, "notes": notes}
+        updated = await self.tasks.update(task.id, TaskUpdate(**fields), actor=TASK_ACTOR, note=note)
+        return {"status": "updated", "task": self.brief(updated), "changed": changes, "note_saved": note, "notes": notes}
 
     async def complete_task(self, args: dict) -> dict:
         task = await self.tasks.get(int(args["task_id"]))
@@ -264,17 +267,23 @@ class TaskTools(_Toolbox):
             return {"status": "already_done", "task": self.brief(task)}
 
         findings = [f"this task is {task.status.value}, not open"] if not task.is_open else []
-        proposal = ProposedAction(kind="complete", args={"task": self.brief(task)}, findings=findings)
+        note = (args.get("note") or "").strip() or None
+        proposal = ProposedAction(kind="complete", args={"task": self.brief(task), "note": note}, findings=findings)
         if (held := await self._reviewed(proposal)) is not None:
             return held
-        done = await self.tasks.complete(task.id, actor=TASK_ACTOR)
-        return {"status": "completed", "task": self.brief(done)}
+        done = await self.tasks.complete(task.id, actor=TASK_ACTOR, note=note)
+        return {"status": "completed", "task": self.brief(done), "note_saved": note}
 
     def tools(self) -> list[Tool]:
         priority = {"type": "string", "enum": [p.value for p in Priority]}
         status = {"type": "string", "enum": [s.value for s in Status]}
         due = {"type": "string", "description": "ISO date or datetime, e.g. 2026-10-09 or 2026-10-09T15:00."}
         person = {"type": "string", "description": "The person's name as the user gave it, or 'me' for the user."}
+        note = {
+            "type": "string",
+            "description": "The user's reason or comment for this change, in their words, if they gave one. "
+            "It is saved with the change in the task's history.",
+        }
         return [
             Tool(
                 "search_tasks",
@@ -325,6 +334,7 @@ class TaskTools(_Toolbox):
                         "priority": priority,
                         "due_date": {**due, "description": due["description"] + " Use 'none' to remove it."},
                         "status": status,
+                        "note": note,
                     },
                     "required": ["task_id"],
                 },
@@ -333,7 +343,7 @@ class TaskTools(_Toolbox):
             Tool(
                 "complete_task",
                 "Mark a task as done. Checked by the Reviewer before it is saved.",
-                {"type": "object", "properties": {"task_id": {"type": "integer"}}, "required": ["task_id"]},
+                {"type": "object", "properties": {"task_id": {"type": "integer"}, "note": note}, "required": ["task_id"]},
                 self.complete_task,
             ),
         ]

@@ -81,7 +81,8 @@ function listTask() {
 
 function describeChange(event) {
   if (event.action === "created") return "Created the task";
-  const parts = Object.entries(event.changes || {}).map(([field, change]) => {
+  const { note, ...fields } = event.changes || {};
+  const parts = Object.entries(fields).map(([field, change]) => {
     const name = { due_at: "due date", assignee_id: "assignee" }[field] || field;
     const show = (v) => {
       if (v === null || v === "") return "none";
@@ -93,6 +94,8 @@ function describeChange(event) {
     };
     return `${name}: ${show(change.from)} → ${show(change.to)}`;
   });
+  // A reason the person gave for the change is stored beside the changed fields.
+  if (note) parts.push(`Reason: ${note}`);
   return parts.join("; ") || event.action;
 }
 

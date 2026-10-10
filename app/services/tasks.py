@@ -16,6 +16,7 @@ from app.schemas import TaskCreate, TaskFilter, TaskStats, TaskUpdate
 from app.services.priority import rank
 
 NULLABLE_FIELDS = {"assignee_id", "due_at"}
+NOTE_MAX = 500
 PRIORITY_ORDER = case(
     {Priority.urgent.value: 0, Priority.high.value: 1, Priority.medium.value: 2, Priority.low.value: 3},
     value=Task.priority,
@@ -70,7 +71,8 @@ class TaskService:
         stmt = select(TaskEvent).where(TaskEvent.task_id == task_id).order_by(TaskEvent.id.desc())
         return list((await self.session.scalars(stmt)).all())
 
-    async def update(self, task_id: int, data: TaskUpdate, actor: str) -> Task:
+    async def update(self, task_id: int, data: TaskUpdate, actor: str, note: str | None = None) -> Task:
+        """Apply the fields that were sent. `note` is the person's reason, kept with the change in the history."""
         task = await self.get(task_id)
         if task is None:
             raise TaskNotFound(task_id)
@@ -102,13 +104,15 @@ class TaskService:
                     action = "reopened"
 
         task.updated_at = self.now()
+        if note and note.strip():
+            changes["note"] = note.strip()[:NOTE_MAX]
         self.session.add(TaskEvent(task_id=task.id, actor=actor, action=action, changes=changes))
         await self.session.flush()
         await self.session.refresh(task)
         return task
 
-    async def complete(self, task_id: int, actor: str) -> Task:
-        return await self.update(task_id, TaskUpdate(status=Status.done), actor)
+    async def complete(self, task_id: int, actor: str, note: str | None = None) -> Task:
+        return await self.update(task_id, TaskUpdate(status=Status.done), actor, note=note)
 
     def _where(self, f: TaskFilter) -> list:
         now = self.now()

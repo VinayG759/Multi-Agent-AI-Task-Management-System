@@ -159,3 +159,17 @@ async def test_link_telegram_reuses_unlinked_member_with_same_name(session):
     stranger = await users.link_telegram("777", "Priya")
     assert stranger.id != member.id
     assert (await users.link_telegram("555", "whatever")).id == member.id
+
+
+async def test_a_reason_given_with_a_change_is_kept_in_the_history(tasks, session):
+    task = await tasks.create(TaskCreate(title="Visit the site"), actor="t")
+    await tasks.update(task.id, TaskUpdate(status=Status.cancelled), actor="agent:task", note="Someone else is handling it")
+    event = (await _events(session, task.id))[-1]
+    assert event.action == "cancelled"
+    assert event.changes == {"status": {"from": "todo", "to": "cancelled"}, "note": "Someone else is handling it"}
+
+
+async def test_a_reason_alone_changes_nothing(tasks, session):
+    task = await tasks.create(TaskCreate(title="Visit the site"), actor="t")
+    await tasks.update(task.id, TaskUpdate(title="Visit the site"), actor="t", note="just a thought")
+    assert len(await _events(session, task.id)) == 1
