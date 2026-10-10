@@ -137,12 +137,6 @@ class TaskTools(_Toolbox):
             "note": "Nothing was changed. Give this message to the user as it is.",
         }
 
-    async def find_user(self, args: dict) -> dict:
-        person = await self.person(args["name"])
-        if person is None:
-            return {"found": False, "note": f"Nobody named '{args['name']}' is on the team yet."}
-        return {"found": True, "id": person.id, "name": person.name}
-
     async def search_tasks(self, args: dict) -> dict:
         assignee_id = None
         if args.get("assignee_name"):
@@ -281,12 +275,6 @@ class TaskTools(_Toolbox):
         due = {"type": "string", "description": "ISO date or datetime, e.g. 2026-10-09 or 2026-10-09T15:00."}
         person = {"type": "string", "description": "The person's name as the user gave it, or 'me' for the user."}
         return [
-            Tool(
-                "find_user",
-                "Look up a team member by name. Use it when you need to know whether someone exists.",
-                {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]},
-                self.find_user,
-            ),
             Tool(
                 "search_tasks",
                 "Find tasks by words in their title or description. Always use this to get a task's id "

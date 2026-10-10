@@ -11,7 +11,7 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 | Chat | Telegram, behind a channel interface so other platforms can be added |
 | Proactive | APScheduler: daily plan, due-soon reminders, overdue follow-ups, weekly summary |
 | Dashboard | Plain HTML, CSS and JavaScript served by FastAPI. No build step |
-| Tests | 103 automated tests. None of them call a real LLM or Telegram |
+| Tests | 104 automated tests. None of them call a real LLM or Telegram |
 
 ## Run it
 
@@ -73,7 +73,7 @@ There are four layers, and each one only talks to the layer below it:
 | Agent | Job | Tools | Why it is separate |
 |---|---|---|---|
 | **Orchestrator** | Reads the message and the recent conversation, decides which specialist handles it and in what order, writes the reply | `ask_task_agent`, `ask_advisor_agent` | One message can need several steps ("create this, then tell me what to focus on"). Something has to plan the sequence and carry context between steps |
-| **Task Agent** | Turns an instruction into exact task changes: which task, which person, which date | `find_user`, `search_tasks`, `create_task`, `update_task`, `complete_task` | It is the only agent with write tools. Precise extraction is a different job from giving advice |
+| **Task Agent** | Turns an instruction into exact task changes: which task, which person, which date | `search_tasks`, `create_task`, `update_task`, `complete_task` | It is the only agent with write tools. Precise extraction is a different job from giving advice |
 | **Advisor Agent** | Answers "what should I focus on", lists and searches tasks, writes daily plans and summaries | `get_ranked_tasks`, `list_tasks`, `get_stats` | It is read-only. Whatever it does, it cannot change data |
 | **Reviewer Agent** | Checks every proposed change before it is saved | none | A second opinion on the only risky step. It is called from inside the write tools, in code, so the Task Agent cannot skip it |
 
@@ -204,7 +204,7 @@ app/
 scripts/
   seed.py            Demo team and tasks
   eval_examples.py   Runs the assignment's six example sentences against the real LLM
-tests/               103 tests
+tests/               104 tests
 docs/
   architecture.md    Architecture diagram and evaluation
   plans/             The implementation plan this was built from

@@ -274,3 +274,10 @@ async def test_advisor_lists_overdue_tasks_for_me(session, alice, settings, task
 async def test_advisor_has_no_write_tools(session, alice, settings):
     agent = build_advisor_agent(make_ctx(session, alice, FakeLLM([]), settings))
     assert set(agent.tools) == {"get_ranked_tasks", "list_tasks", "get_stats"}
+
+
+async def test_task_agent_has_no_separate_person_lookup(session, alice, settings):
+    # Names are resolved inside the write tools, which also add a new member when needed.
+    # A separate lookup tool made the agent stop and ask about people it could simply have added.
+    agent = build_task_agent(make_ctx(session, alice, FakeLLM([]), settings))
+    assert set(agent.tools) == {"search_tasks", "create_task", "update_task", "complete_task"}
