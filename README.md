@@ -4,6 +4,10 @@ A multi-agent AI task manager you talk to in chat. Say "Create a high priority t
 
 Built for the HiDevs Multi-Agent AI Task Management System assignment.
 
+**Live demo:** https://taskpilot-jari.onrender.com
+
+The dashboard asks for a password and the Telegram bot asks for a join code; both are supplied with the submission. The demo runs on a free hosting plan that sleeps after 15 minutes without visitors, so the first page load can take up to a minute, and the bot answers only while the app is awake.
+
 | | |
 |---|---|
 | Backend | Python 3.11, FastAPI, SQLAlchemy 2 (async), SQLite |
@@ -18,6 +22,8 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 You need Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
+git clone https://github.com/VinayG759/Multi-Agent-AI-Task-Management-System.git
+cd Multi-Agent-AI-Task-Management-System
 uv sync                              # install dependencies
 cp .env.example .env                 # then put your two keys in .env
 uv run python scripts/seed.py        # optional: demo team and tasks
