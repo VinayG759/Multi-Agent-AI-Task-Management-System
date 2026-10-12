@@ -32,6 +32,8 @@ function renderSystemStatus() {
     line("Telegram", state.system.telegram, "Not connected"),
     line("Scheduler", state.system.scheduler, "Off"),
   );
+  // Sign out is offered only when the dashboard is password-protected.
+  $("sign-out").hidden = !state.system.protected;
 }
 
 function fillMe() {

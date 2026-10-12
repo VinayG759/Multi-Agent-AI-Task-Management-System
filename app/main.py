@@ -12,7 +12,7 @@ from app.api import chat as chat_api
 from app.api import proactive as proactive_api
 from app.api import tasks as tasks_api
 from app.api import users as users_api
-from app.auth import require_password
+from app.auth import build_auth_router, require_sign_in
 from app.channels.base import Channel
 from app.channels.telegram import TelegramChannel
 from app.config import Settings, get_settings
@@ -78,7 +78,8 @@ def create_app(
     app = FastAPI(title="TaskPilot", description="Multi-agent AI task management", lifespan=lifespan)
     app.state.settings = settings
     if settings.dashboard_password:
-        app.middleware("http")(require_password(settings.dashboard_password))
+        app.middleware("http")(require_sign_in(settings.dashboard_password))
+    app.include_router(build_auth_router(settings.dashboard_password))
 
     @app.exception_handler(TaskNotFound)
     async def task_not_found(request: Request, exc: TaskNotFound):
@@ -96,6 +97,7 @@ def create_app(
             "telegram": any(c.name == "telegram" for c in request.app.state.channels),
             "scheduler": request.app.state.scheduler is not None,
             "timezone": settings.timezone,
+            "protected": bool(settings.dashboard_password),
         }
 
     app.include_router(tasks_api.router)

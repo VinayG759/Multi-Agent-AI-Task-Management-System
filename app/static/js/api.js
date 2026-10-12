@@ -31,6 +31,12 @@ async function request(method, path, body) {
   }
   if (response.ok) return response.json();
 
+  // Not signed in, or the session ended: go to the sign-in page.
+  if (response.status === 401) {
+    location.href = "/login";
+    throw new ApiError("Your session has ended. Taking you to the sign-in page.", { status: 401 });
+  }
+
   let detail;
   try { detail = (await response.json()).detail; } catch { detail = null; }
 
