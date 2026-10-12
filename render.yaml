@@ -1,0 +1,39 @@
+# Render Blueprint: one web service that runs the API, the dashboard, the Telegram bot and the scheduler.
+# In Render: New > Blueprint > pick this repository. Render then asks for the four secrets below.
+
+services:
+  - type: web
+    name: taskpilot
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    # Render tells the app which port to listen on through $PORT.
+    startCommand: .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+
+      # Secrets. Render asks for these once, when the Blueprint is created. They are never stored in git.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TEAM_JOIN_CODE
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+
+      # The free plan wipes local files on every restart, so the demo data reloads itself.
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: TIMEZONE
+        value: Asia/Kolkata
+      - key: ORCHESTRATOR_MODEL
+        value: claude-sonnet-5-5
+      - key: SPECIALIST_MODEL
+        value: claude-sonnet-5-5
+      - key: REVIEWER_MODEL
+        value: claude-sonnet-5-5

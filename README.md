@@ -11,7 +11,7 @@ Built for the HiDevs Multi-Agent AI Task Management System assignment.
 | Chat | Telegram, behind a channel interface so other platforms can be added |
 | Proactive | APScheduler: daily plan, due-soon reminders, overdue follow-ups, weekly summary |
 | Dashboard | Plain HTML, CSS and JavaScript served by FastAPI. No build step |
-| Tests | 119 automated tests. None of them call a real LLM or Telegram |
+| Tests | 127 automated tests. None of them call a real LLM or Telegram |
 
 ## Run it
 
@@ -35,6 +35,22 @@ Open http://localhost:8000 for the dashboard and http://localhost:8000/docs for 
 With Docker: `docker compose up --build`, then open http://localhost:8000.
 
 Run the tests with `uv run pytest`.
+
+### Deploy
+
+[render.yaml](render.yaml) deploys everything as one Render web service: the API, the dashboard, the Telegram bot and the scheduler. In Render choose **New > Blueprint**, pick this repository, and fill in the four secrets it asks for.
+
+| Setting | Why it matters on a public address |
+|---|---|
+| `DASHBOARD_PASSWORD` | Makes the browser ask for a password before showing the dashboard or the API. Without it anyone with the link could change tasks and run the agents on your LLM credits. Any username works; the password is the one you set |
+| `TEAM_JOIN_CODE` | Keeps strangers out of the Telegram bot |
+| `SEED_DEMO_DATA=true` | Render's free plan wipes local files on every restart, so the demo data reloads itself when the database is empty |
+
+Things to know about the free plan:
+
+- **It sleeps after 15 minutes without web traffic.** While asleep the bot does not answer and scheduled jobs do not run. A free uptime monitor that requests `/health` every few minutes keeps it awake.
+- **Tasks do not survive a restart.** For data that lasts, attach a disk on a paid plan or point `DATABASE_URL` at Postgres.
+- **One bot token, one running copy.** Telegram delivers messages to a single poller, so do not run the app locally with the same token while the deployed copy is up.
 
 ## How it works
 
@@ -201,7 +217,7 @@ The current setup is sized for a demo and a small team. Each part has a clear ne
 
 ## Known limits
 
-- **No login on the dashboard.** A "Viewing as" menu picks the current person. Anyone who can open the page can act as anyone.
+- **The dashboard has one shared password, not per-person login.** With `DASHBOARD_PASSWORD` set, everyone who knows it gets in, and a "Viewing as" menu picks who you are. Without it, the dashboard is open to anyone who can reach it, which is fine on your own machine only.
 - **The join code is one shared secret.** If it leaks, anyone can join until it is changed in `.env`. People who joined earlier stay in; there is no way yet to remove one person.
 - **Telegram users are matched to team members by name.** An exact match links directly. Otherwise a person is linked when exactly one unlinked member shares their first name, so "Vinay G" in Telegram becomes "Vinay" on the team list, and the welcome message says who they were matched to. If two members share that first name, nobody is guessed and a new person is created. There is no way yet to correct a wrong match from the chat.
 - **Reminders reach only people who have sent `/start` to the bot.** Telegram does not let a bot message someone first.
@@ -223,9 +239,9 @@ app/
   api/               REST routes
   static/            The dashboard
 scripts/
-  seed.py            Demo team and tasks
+  seed.py            Loads the demo team and tasks (the data itself is in app/demo.py)
   eval_examples.py   Runs the assignment's six example sentences, plus a two-task request, against the real LLM
-tests/               119 tests
+tests/               127 tests
 docs/
   architecture.md    Architecture diagram and evaluation
   plans/             The implementation plan this was built from

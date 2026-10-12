@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Kolkata"
     # When set, a new person must send "/start <code>" to use the Telegram bot. Empty means anyone can join.
     team_join_code: str = ""
+    # When set, the dashboard and API ask for this password. Set it whenever the app is on a public address.
+    dashboard_password: str = ""
+    # Load the demo team and tasks at startup if the database is empty. For hosts that wipe local files.
+    seed_demo_data: bool = False
 
     # One model per agent role, so a cheaper or faster model can be swapped in from .env.
     orchestrator_model: str = "claude-opus-5-5"

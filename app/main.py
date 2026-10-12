@@ -12,10 +12,12 @@ from app.api import chat as chat_api
 from app.api import proactive as proactive_api
 from app.api import tasks as tasks_api
 from app.api import users as users_api
+from app.auth import require_password
 from app.channels.base import Channel
 from app.channels.telegram import TelegramChannel
 from app.config import Settings, get_settings
 from app.db import Database
+from app.demo import seed_if_empty
 from app.proactive.jobs import ProactiveRunner
 from app.proactive.scheduler import build_scheduler
 from app.services.tasks import TaskNotFound
@@ -42,6 +44,8 @@ def create_app(
     async def lifespan(app: FastAPI):
         db = Database(settings.database_url)
         await db.create_all()
+        if settings.seed_demo_data and await seed_if_empty(db, settings):
+            log.info("The database was empty: demo data loaded.")
         runtime = AgentRuntime(db.session_factory, llm or build_llm(settings), settings)
 
         active: list[Channel] = list(channels or [])
@@ -73,6 +77,8 @@ def create_app(
 
     app = FastAPI(title="TaskPilot", description="Multi-agent AI task management", lifespan=lifespan)
     app.state.settings = settings
+    if settings.dashboard_password:
+        app.middleware("http")(require_password(settings.dashboard_password))
 
     @app.exception_handler(TaskNotFound)
     async def task_not_found(request: Request, exc: TaskNotFound):
