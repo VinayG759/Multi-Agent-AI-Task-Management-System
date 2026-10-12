@@ -14,7 +14,7 @@ Original file: [architecture-copilot.pdf](architecture-copilot.pdf)
 
 ### 1b. Final architecture, as built
 
-![TaskPilot final architecture](architecture-final.svg)
+![TaskPilot final architecture](architecture-final.png)
 
 ### 1c. What differs between the two
 

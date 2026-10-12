@@ -7,3 +7,7 @@ __pycache__/
 .ruff_cache/
 .superpowers/
 .gstack/
+
+# Working files kept on this machine only
+docs/plans/
+docs/architecture-final.svg

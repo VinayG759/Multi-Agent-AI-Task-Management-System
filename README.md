@@ -244,5 +244,4 @@ scripts/
 tests/               127 tests
 docs/
   architecture.md    Architecture diagram and evaluation
-  plans/             The implementation plan this was built from
 ```
