@@ -52,6 +52,42 @@ Things to know about the free plan:
 - **Tasks do not survive a restart.** For data that lasts, attach a disk on a paid plan or point `DATABASE_URL` at Postgres.
 - **One bot token, one running copy.** Telegram delivers messages to a single poller, so do not run the app locally with the same token while the deployed copy is up.
 
+## Architecture
+
+![TaskPilot final architecture](docs/architecture-final.png)
+
+The full write-up, including the evaluation of the Architecture Copilot's design, is in [docs/architecture.md](docs/architecture.md). The five points the assignment asks for are answered here.
+
+### Why this architecture
+
+The system is split into four agents only where the job, the tools and the risk are different. The Orchestrator holds the conversation and plans the steps. The Task Agent is the only one that can change tasks. The Advisor can only read, so it cannot damage data whatever it does. The Reviewer checks every change before it is saved, because the agent proposing a change should not be the one approving it.
+
+Anything that can be plain code is plain code: urgency scoring, date checks, duplicate detection and conversation memory are not agents. Safety rules are enforced in code, not in prompts: the Reviewer runs inside the write tools, so no prompt wording can skip it, and each request runs in one database transaction, so a failure leaves nothing half-done.
+
+### Agent interactions and workflow
+
+The Orchestrator is an agent whose tools are the other agents. For "create a task for John to deploy the frontend, then tell me what to focus on", it first calls the Task Agent with a complete instruction. The Task Agent calls its create tool. Inside that tool, code gathers findings (a similar task already exists, a date in the past, an unknown person) and passes the proposal to the Reviewer, which answers approve, clarify or reject. On approval the task is saved; otherwise the Reviewer's question goes back to the user and nothing changes.
+
+The Orchestrator then calls the Advisor, which ranks tasks using scores computed in code, and finally writes one combined reply. Changes come before advice, so the advice reflects them. If the Reviewer's answer cannot be read, it counts as "clarify", so the system fails closed.
+
+### Communication flow
+
+A user's message goes from Telegram to a small adapter, which identifies the person and passes the text to the agent runtime. The reply returns the same way. The dashboard's assistant box reaches the same runtime through an HTTP endpoint, so both channels use the same agents. Proactive messages start from the scheduler: it asks the Advisor for a daily plan, an overdue follow-up or a weekly summary, and the adapter delivers it.
+
+The agents never know which platform a message came from. A channel is one class with a send method, so adding Google Chat or Slack means writing one more adapter and changing nothing else. Messages from one person are handled in order by a per-user lock, and a join code keeps strangers out of the bot.
+
+### Data flow
+
+Only the service layer reads or writes the database. Agents reach data through tools, and tools call services. The dashboard's REST API calls the same services, so the rules and the change history are identical whoever makes a change.
+
+The database holds people, tasks, a history entry for every change (who made it, what changed, and the reason if one was given), conversation memory, a trace of every agent step, and a record of each reminder sent so none is sent twice. The trace is saved in its own transaction after the request finishes or rolls back, so a failed run still shows what happened. All times are stored in UTC and shown in the configured timezone.
+
+### Scalability
+
+All state lives in the database and none in the agents, so each part can be scaled without changing the agent design. SQLite allows one writer at a time; switching to Postgres is one setting. Telegram polling becomes a webhook behind a load balancer. The in-process scheduler moves to a job queue with separate workers, so jobs run once across several servers. The in-memory per-user lock becomes a distributed lock.
+
+On the AI side, replies take about ten seconds today because agent calls run one after another. Independent steps can run in parallel, the fixed system prompts can be cached, and the Reviewer and Orchestrator can use a smaller, faster model, since the model for each role is already a setting. The table under [Scaling up](#scaling-up) lists each step.
+
 ## How it works
 
 ```mermaid
