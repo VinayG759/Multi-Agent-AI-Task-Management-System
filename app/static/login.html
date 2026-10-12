@@ -4,26 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in · TaskPilot</title>
-  <link rel="stylesheet" href="/static/css/tokens.css">
-  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/tokens.css?v=3">
+  <link rel="stylesheet" href="/static/css/app.css?v=3">
+  <!-- The layout of this one page lives here, so it never depends on a stylesheet a browser saved earlier. -->
+  <style>
+    body.signin-page { display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 16px; }
+    .signin {
+      display: flex; flex-direction: column; gap: 20px;
+      width: min(400px, 100%); padding: 32px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-raised);
+    }
+    .signin-head { display: flex; flex-direction: column; gap: 6px; }
+    .signin .brand { padding: 0; color: var(--accent); font-size: var(--text-md); letter-spacing: 0.02em; }
+    .signin h1 { font-size: var(--text-xl); }
+    .signin .form { gap: 16px; }
+    .signin .btn { width: 100%; margin-top: 4px; }
+    .signin-foot { padding-top: 16px; border-top: 1px solid var(--border); }
+  </style>
 </head>
 <body class="signin-page">
   <main class="signin">
-    <div class="brand">TaskPilot</div>
-    <h1>Sign in</h1>
-    <p class="hint">Enter the team password to open the dashboard.</p>
+    <div class="signin-head">
+      <div class="brand">TaskPilot</div>
+      <h1>Sign in</h1>
+      <p class="hint">Use your team's dashboard account.</p>
+    </div>
 
     <form class="form" method="post" action="/login">
+      <!-- error -->
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" class="input" name="username" type="text" value="__USERNAME__"
+               autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus
+               aria-describedby="signin-error">
+      </div>
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" class="input" name="password" type="password" autocomplete="current-password"
-               required autofocus aria-describedby="signin-error">
-        <!-- error -->
+        <input id="password" class="input" name="password" type="password"
+               autocomplete="current-password" required aria-describedby="signin-error">
       </div>
       <button class="btn btn-primary" type="submit">Sign in</button>
     </form>
 
-    <p class="hint">To use TaskPilot in Telegram, message the bot and send your team's join code after /start.</p>
+    <p class="hint signin-foot">To use TaskPilot in Telegram, message the bot and send your team's join code after /start.</p>
   </main>
 </body>
 </html>

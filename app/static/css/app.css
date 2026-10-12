@@ -333,16 +333,7 @@ table.tasks { width: 100%; border-collapse: collapse; }
 .agent-advisor { color: var(--success); }
 .agent-system { color: var(--danger); }
 
-/* ---------- Sign-in page ---------- */
-
-.signin-page { display: grid; place-items: center; min-height: 100vh; padding: var(--s4); }
-.signin {
-  display: flex; flex-direction: column; gap: var(--s4);
-  width: min(380px, 100%); padding: var(--s6);
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow);
-}
-.signin .brand { padding: 0; }
-.signin .btn { width: 100%; }
+/* The sign-in page's own layout is inside login.html. */
 #sign-out .btn { width: 100%; }
 
 /* ---------- Small screens ---------- */

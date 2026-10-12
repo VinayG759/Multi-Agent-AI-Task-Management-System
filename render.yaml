@@ -1,5 +1,5 @@
 # Render Blueprint: one web service that runs the API, the dashboard, the Telegram bot and the scheduler.
-# In Render: New > Blueprint > pick this repository. Render then asks for the four secrets below.
+# In Render: New > Blueprint > pick this repository. Render then asks for the five secrets below.
 
 services:
   - type: web
@@ -22,6 +22,8 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TEAM_JOIN_CODE
+        sync: false
+      - key: DASHBOARD_USERNAME
         sync: false
       - key: DASHBOARD_PASSWORD
         sync: false

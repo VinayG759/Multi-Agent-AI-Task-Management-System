@@ -9,6 +9,7 @@ from app.demo import TASKS, TEAM, seed_if_empty
 from app.main import create_app
 from app.models import Task, User
 
+USERNAME = "vinay"
 PASSWORD = "open-sesame"
 HTML = {"Accept": "text/html"}
 
@@ -21,14 +22,14 @@ def no_waiting(monkeypatch):
 
 @pytest.fixture
 async def locked(settings):
-    app = create_app(settings.model_copy(update={"dashboard_password": PASSWORD}))
+    app = create_app(settings.model_copy(update={"dashboard_username": USERNAME, "dashboard_password": PASSWORD}))
     client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
     async with app.router.lifespan_context(app), client:
         yield client
 
 
-async def sign_in(client, password=PASSWORD, **kwargs):
-    return await client.post("/login", data={"password": password}, **kwargs)
+async def sign_in(client, password=PASSWORD, username=USERNAME, **kwargs):
+    return await client.post("/login", data={"username": username, "password": password}, **kwargs)
 
 
 # --- no password configured: a laptop, nothing to protect ------------------------
@@ -64,7 +65,7 @@ async def test_the_api_refuses_signed_out_requests_without_a_browser_popup(locke
 async def test_the_sign_in_page_and_its_styles_are_reachable_signed_out(locked):
     page = await locked.get("/login")
     assert page.status_code == 200
-    assert 'type="password"' in page.text and 'action="/login"' in page.text
+    assert 'name="username"' in page.text and 'type="password"' in page.text and 'action="/login"' in page.text
     assert "not correct" not in page.text
     assert (await locked.get("/static/css/app.css")).status_code == 200
     assert (await locked.get("/health")).status_code == 200
@@ -73,9 +74,35 @@ async def test_the_sign_in_page_and_its_styles_are_reachable_signed_out(locked):
 async def test_a_wrong_password_shows_a_clear_message_and_signs_nobody_in(locked):
     response = await sign_in(locked, "guess")
     assert response.status_code == 401
-    assert "That password is not correct" in response.text
+    assert "That username or password is not correct" in response.text
     assert "set-cookie" not in response.headers
     assert (await locked.get("/api/tasks")).status_code == 401
+
+
+async def test_the_right_password_with_the_wrong_username_is_refused(locked):
+    response = await sign_in(locked, username="someone-else")
+    assert response.status_code == 401 and "set-cookie" not in response.headers
+    assert (await sign_in(locked, username="")).status_code == 401
+
+
+async def test_the_username_ignores_capitals_and_stray_spaces_but_the_password_does_not(locked):
+    assert (await sign_in(locked, username="  Vinay ")).status_code == 303
+    locked.cookies.clear()
+    assert (await sign_in(locked, password=PASSWORD.upper())).status_code == 401
+
+
+async def test_the_sign_in_page_keeps_the_typed_username_after_a_wrong_password(locked):
+    response = await sign_in(locked, "guess")
+    assert 'value="vinay"' in response.text
+    assert "guess" not in response.text
+
+
+async def test_browsers_are_told_to_check_for_newer_dashboard_files(locked):
+    # Without this a browser can keep showing an old stylesheet after an update.
+    await sign_in(locked)
+    for path in ("/static/css/app.css", "/static/js/main.js"):
+        assert (await locked.get(path)).headers["cache-control"] == "no-cache", path
+    assert "no-store" in (await locked.get("/", headers=HTML)).headers["cache-control"]
 
 
 async def test_the_right_password_signs_you_in_and_the_dashboard_opens(locked):
@@ -112,15 +139,23 @@ async def test_signing_out_ends_the_session(locked):
 
 async def test_the_session_survives_a_restart_and_ends_when_the_password_changes(settings):
     async def tasks_status(password_now, cookie):
-        app = create_app(settings.model_copy(update={"dashboard_password": password_now}))
+        app = create_app(settings.model_copy(update={"dashboard_username": USERNAME, "dashboard_password": password_now}))
         client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
         async with app.router.lifespan_context(app), client:
             client.cookies.set(auth.COOKIE_NAME, cookie)
             return (await client.get("/api/tasks")).status_code
 
-    cookie = auth.session_token(PASSWORD)
+    cookie = auth.session_token(USERNAME, PASSWORD)
     assert await tasks_status(PASSWORD, cookie) == 200
     assert await tasks_status("a-new-password", cookie) == 401
+
+
+async def test_a_blank_username_setting_falls_back_to_admin_instead_of_locking_everyone_out(settings):
+    app = create_app(settings.model_copy(update={"dashboard_username": "  ", "dashboard_password": PASSWORD}))
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    async with app.router.lifespan_context(app), client:
+        assert (await sign_in(client, username="admin")).status_code == 303
+        assert (await client.get("/api/tasks")).status_code == 200
 
 
 # --- demo data -------------------------------------------------------------------

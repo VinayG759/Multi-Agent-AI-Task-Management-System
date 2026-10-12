@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Kolkata"
     # When set, a new person must send "/start <code>" to use the Telegram bot. Empty means anyone can join.
     team_join_code: str = ""
-    # When set, the dashboard and API ask for this password. Set it whenever the app is on a public address.
+    # When the password is set, the dashboard and API require signing in with this username and password.
+    # Set the password whenever the app is on a public address.
+    dashboard_username: str = "admin"
     dashboard_password: str = ""
     # Load the demo team and tasks at startup if the database is empty. For hosts that wipe local files.
     seed_demo_data: bool = False

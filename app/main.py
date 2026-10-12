@@ -26,6 +26,19 @@ log = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent / "static"
 
 
+class FreshStaticFiles(StaticFiles):
+    """Dashboard files that browsers must re-check before reusing a saved copy.
+
+    The check is cheap (the server answers "unchanged" when nothing is new), and it means an
+    updated stylesheet or script is picked up straight away instead of hours later.
+    """
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 def build_llm(settings: Settings) -> LLMClient:
     if not settings.anthropic_api_key:
         log.warning("ANTHROPIC_API_KEY is not set: the task API and dashboard work, the AI assistant does not.")
@@ -77,9 +90,11 @@ def create_app(
 
     app = FastAPI(title="TaskPilot", description="Multi-agent AI task management", lifespan=lifespan)
     app.state.settings = settings
+    # A blank username setting falls back to "admin", so a half-filled configuration cannot lock everyone out.
+    username = settings.dashboard_username.strip() or "admin"
     if settings.dashboard_password:
-        app.middleware("http")(require_sign_in(settings.dashboard_password))
-    app.include_router(build_auth_router(settings.dashboard_password))
+        app.middleware("http")(require_sign_in(username, settings.dashboard_password))
+    app.include_router(build_auth_router(username, settings.dashboard_password))
 
     @app.exception_handler(TaskNotFound)
     async def task_not_found(request: Request, exc: TaskNotFound):
@@ -107,9 +122,9 @@ def create_app(
 
     @app.get("/", include_in_schema=False)
     async def dashboard():
-        return FileResponse(STATIC_DIR / "index.html")
+        return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-store"})
 
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    app.mount("/static", FreshStaticFiles(directory=STATIC_DIR), name="static")
     return app
 
 
