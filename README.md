@@ -77,7 +77,7 @@ flowchart LR
     TR --> DB
 ```
 
-The full diagram, next to the one the Architecture Copilot generated, is in [docs/architecture.md](docs/architecture.md).
+The full diagram is in [docs/architecture.md](docs/architecture.md).
 
 There are four layers, and each one only talks to the layer below it:
 

@@ -8,6 +8,7 @@ __pycache__/
 .superpowers/
 .gstack/
 
-# Working files kept on this machine only
-docs/plans/
-docs/architecture-final.svg
+# In docs/, only architecture.md and architecture-final.png are published
+docs/*
+!docs/architecture.md
+!docs/architecture-final.png
