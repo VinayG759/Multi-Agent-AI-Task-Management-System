@@ -61,6 +61,8 @@ flowchart LR
     TR --> DB
 ```
 
+The full diagram, next to the one the Architecture Copilot generated, is in [docs/architecture.md](docs/architecture.md).
+
 There are four layers, and each one only talks to the layer below it:
 
 1. **Channels** move text in and out. Telegram and the dashboard's assistant box are two channels into the same system.
